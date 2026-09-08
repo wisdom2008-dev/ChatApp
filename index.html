@@ -1,0 +1,2538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChatApp</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: #f2f5f9;
+      color: #222;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    #auth-screen {
+      position: fixed;
+      inset: 0;
+      background: #1976f3;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 25px;
+      z-index: 9999;
+    }
+
+    #auth-screen h1 {
+      font-size: 34px;
+      margin-bottom: 8px;
+    }
+
+    #auth-screen p {
+      margin-bottom: 20px;
+    }
+
+    #auth-screen input {
+      width: 100%;
+      max-width: 350px;
+      padding: 14px;
+      margin: 6px 0;
+      border: none;
+      border-radius: 10px;
+      outline: none;
+    }
+
+    #auth-screen button {
+      width: 100%;
+      max-width: 350px;
+      padding: 14px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    #login-btn {
+      background: white;
+      color: #1976f3;
+    }
+
+    #signup-btn {
+      background: #0d5ec7;
+      color: white;
+    }
+
+    #auth-message {
+      margin-top: 15px;
+      text-align: center;
+      min-height: 20px;
+    }
+
+    #app {
+      display: none;
+      height: 100vh;
+      width: 100%;
+    }
+
+    .app {
+      display: flex;
+      height: 100vh;
+      width: 100%;
+    }
+
+    .sidebar {
+      width: 320px;
+      background: white;
+      border-right: 1px solid #ddd;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-header {
+      background: #1976f3;
+      color: white;
+      padding: 18px;
+    }
+
+    .sidebar-header h1 {
+      font-size: 24px;
+    }
+
+    .tagline {
+      font-size: 13px;
+      margin-top: 4px;
+      opacity: 0.9;
+    }
+
+    .search-box {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 11px 13px;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      outline: none;
+    }
+
+    .contacts {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .contact {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px;
+      cursor: pointer;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .contact:hover {
+      background: #f4f7fb;
+    }
+
+    .contact.active {
+      background: #e8f1ff;
+    }
+
+    .contact-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: #1976f3;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 21px;
+    }
+
+    .contact-name {
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .online {
+      font-size: 12px;
+      color: #16a34a;
+    }
+
+    .offline {
+      color: #888;
+    }
+
+    .badge {
+      background: #1976f3;
+      color: white;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 6px;
+      border-radius: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 11px;
+    }
+
+    .sidebar-footer {
+      padding: 12px;
+      border-top: 1px solid #ddd;
+    }
+
+    .sidebar-footer button {
+      width: 100%;
+      padding: 11px;
+      border: none;
+      border-radius: 8px;
+      background: #eee;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .back-button {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .back-button {
+    display: block;
+    border: none;
+    background: transparent;
+    font-size: 28px;
+    cursor: pointer;
+    color: inherit;
+    padding: 0 4px;
+    flex-shrink: 0;
+  }
+
+    .chat-header {
+      background: white;
+      padding: 10px 14px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chat-header .avatar {
+      width: 42px;
+      height: 42px;
+    }
+
+    .chat-title {
+      font-weight: bold;
+      font-size: 17px;
+    }
+
+    .chat-status {
+      color: #16a34a;
+      font-size: 12px;
+      margin-top: 3px;
+    }
+
+    .messages {
+      flex: 1;
+      padding: 14px 12px;
+      overflow-y: auto;
+      background: #f4f6f8;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .message {
+      max-width: 82%;
+      padding: 8px 11px 6px;
+      border-radius: 17px;
+      position: relative;
+      word-wrap: break-word;
+      font-size: 15px;
+      line-height: 1.35;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+    }
+
+    .message.sent {
+      align-self: flex-end;
+      background: #1976f3;
+      color: white;
+      border-bottom-right-radius: 5px;
+    }
+
+    .message.received {
+      align-self: flex-start;
+      background: white;
+      color: #222;
+      border-bottom-left-radius: 5px;
+    }
+
+    .time {
+      display: block;
+      text-align: right;
+      font-size: 9px;
+      opacity: 0.65;
+      margin-top: 3px;
+    }
+
+    .delete {
+      display: block;
+      margin-top: 7px;
+      border: none;
+      background: transparent;
+      color: inherit;
+      opacity: 0.7;
+      cursor: pointer;
+      font-size: 10px;
+    }
+
+    .message-input-area {
+      background: white;
+      padding: 8px 10px;
+      display: flex;
+      gap: 8px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .message-input-area input {
+      flex: 1;
+      padding: 11px 15px;
+      border: 1px solid #dfe3e8;
+      border-radius: 24px;
+      outline: none;
+      background: #f5f7f9;
+    }
+
+    .send-button {
+      width: 48px;
+      border: none;
+      border-radius: 50%;
+      background: #1976f3;
+      color: white;
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    .empty {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      color: #777;
+      padding: 30px;
+    }
+
+    #settings {
+      display: none;
+      position: fixed;
+      right: 15px;
+      top: 70px;
+      width: 250px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+      padding: 15px;
+      z-index: 5000;
+    }
+
+    #settings h3 {
+      margin-bottom: 12px;
+    }
+
+    #settings button {
+      width: 100%;
+      padding: 11px;
+      margin-top: 7px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #eee;
+    }
+
+    #edit-profile {
+      display: none;
+      position: fixed;
+      right: 15px;
+      top: 70px;
+      width: 280px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+      padding: 15px;
+      z-index: 5001;
+    }
+
+    #edit-profile h3 {
+      margin-bottom: 12px;
+    }
+
+    #edit-profile input {
+      width: 100%;
+      padding: 11px;
+      margin-top: 7px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      outline: none;
+    }
+
+    #edit-profile button {
+      width: 100%;
+      padding: 11px;
+      margin-top: 7px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #eee;
+    }
+
+    #edit-profile-message {
+      margin-top: 10px;
+      font-size: 13px;
+    }
+
+    body.dark {
+      background: #101820;
+      color: white;
+    }
+
+    body.dark .sidebar,
+    body.dark .chat-header,
+    body.dark .message-input-area,
+    body.dark #settings,
+    body.dark #edit-profile {
+      background: #18232e;
+      color: white;
+    }
+
+    body.dark .contact:hover {
+      background: #22313f;
+    }
+
+    body.dark .contact.active {
+      background: #263c52;
+    }
+
+    body.dark .contact {
+      border-color: #293744;
+    }
+
+    body.dark .messages {
+      background: #101820;
+    }
+
+    body.dark .message.received {
+      background: #253442;
+      color: white;
+    }
+
+    body.dark input {
+      background: #253442;
+      color: white;
+      border-color: #3a4a58;
+    }
+
+    body.dark .sidebar-footer {
+      border-color: #293744;
+    }
+
+    body.dark .sidebar-footer button,
+    body.dark #settings button,
+    body.dark #edit-profile button {
+      background: #293744;
+      color: white;
+    }
+
+    @media (max-width: 700px) {
+
+  .app {
+    width: 100%;
+    height: 100dvh;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sidebar {
+    width: 100%;
+    height: 100%;
+  }
+
+  .chat-area {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100dvh;
+    background: #eef3f8;
+    transform: translateX(100%);
+    transition: transform 0.25s ease;
+    z-index: 9999;
+    }
+
+  .chat-area.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-header {
+    padding: 16px;
+  }
+
+  .sidebar-header h1 {
+    font-size: 22px;
+  }
+
+  .tagline {
+    display: block;
+    font-size: 12px;
+  }
+
+  .search-box {
+    padding: 10px;
+  }
+
+  .contact {
+    padding: 14px;
+  }
+
+  .contact-name {
+    font-size: 15px;
+  }
+
+  .online {
+    font-size: 11px;
+  }
+
+  .avatar {
+    width: 44px;
+    height: 44px;
+  }
+
+  .message {
+    max-width: 85%;
+  }
+
+  .messages {
+    padding: 12px;
+  }
+
+    
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <div id="auth-screen">
+
+    <h1>ChatApp 💬</h1>
+
+    <p>Simple. Fast. Connected.</p>
+
+    <input
+      id="auth-email"
+      type="email"
+      placeholder="Email"
+    >
+
+    <input
+      id="auth-password"
+      type="password"
+      placeholder="Password"
+    >
+
+    <button id="login-btn">
+      Login
+    </button>
+
+    <button id="signup-btn">
+      Create Account
+    </button>
+
+    <p id="auth-message"></p>
+
+  </div>
+
+    <div id="profile-setup" style="display:none;">
+
+    <h2>Set up your profile</h2>
+
+    <p>Choose a name and username.</p>
+
+    <input
+      id="profile-name"
+      type="text"
+      placeholder="Your name"
+    >
+
+    <input
+      id="profile-username"
+      type="text"
+      placeholder="Username"
+    >
+
+    <button id="save-profile-btn">
+      Save Profile
+    </button>
+
+    <p id="profile-message"></p>
+
+    </div>
+
+
+  <div id="app">
+    
+
+    <div class="app">
+
+      <div class="sidebar">
+
+        <div class="sidebar-header">
+
+          <h1>ChatApp 💬</h1>
+
+          <div class="tagline">
+            Simple. Fast. Connected.
+          </div>
+
+        </div>
+
+        <div class="search-box">
+
+          <input
+            id="search-input"
+            type="text"
+            placeholder="Search contacts..."
+          >
+
+        </div>
+
+        <div
+          class="contacts"
+          id="contacts"
+        >
+        </div>
+
+        <div class="sidebar-footer">
+
+          <button id="settingsButton">
+            ⚙️ Settings
+          </button>
+
+          <button id="logoutButton">
+            🚪 Logout
+          </button>
+
+        </div>
+
+      </div>
+
+      <div class="chat-area">
+
+        <div
+          class="chat-header"
+          id="chat-header"
+        >
+    <button id="backButton" class="back-button">←</button>
+         
+          <div class="empty">
+            <div>
+              <h3>Select a contact</h3>
+              <p>Choose someone to start chatting.</p>
+            </div>
+          </div>
+
+        </div>
+
+        <div
+          class="messages"
+          id="messages"
+        >
+
+          <div class="empty">
+            <div>
+              <h2>Welcome to ChatApp 💬</h2>
+              <p>Select a contact to start messaging.</p>
+            </div>
+          </div>
+
+        </div>
+
+        <div
+          class="message-input-area"
+          id="message-input-area"
+          style="display:none;"
+        >
+
+          <input
+            id="messageInput"
+            type="text"
+            placeholder="Type a message..."
+          >
+
+          <button
+            class="send-button"
+            id="sendButton"
+          >
+            ➤
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <div id="settings">
+
+    <h3>Settings</h3>
+
+    <button id="darkButton">
+      🌙 Dark Mode
+    </button>
+
+    <button id="clearButton">
+      🗑️ Clear My Messages
+    </button>
+
+    <button id="editProfileButton">
+      ✏️ Edit Profile
+    </button>
+
+    <button id="closeSettings">
+      Close
+    </button>
+
+  </div>
+
+  <div id="edit-profile" style="display:none;">
+    <h3>Edit Profile</h3>
+
+    <input
+      id="edit-profile-name"
+      type="text"
+      placeholder="Your name"
+    >
+
+    <input
+      id="edit-profile-username"
+      type="text"
+      placeholder="Username"
+    >
+
+    <button id="save-edit-profile">
+      Save Changes
+    </button>
+
+    <button id="cancel-edit-profile">
+      Cancel
+    </button>
+
+    <p id="edit-profile-message"></p>
+  </div>
+
+    <script>
+
+    /* =========================
+       SUPABASE
+    ========================= */
+
+    const SUPABASE_URL =
+      "https://qnclpufghyvvqnlsvnbk.supabase.co";
+
+    const SUPABASE_KEY =
+      "sb_publishable_dMg_t2htO42okRrfS57mzw_gZrcOdRu";
+
+    const db =
+      supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+      );
+
+
+    /* =========================
+       ELEMENTS
+    ========================= */
+
+    const authScreen =
+      document.getElementById("auth-screen");
+
+    const authEmail =
+      document.getElementById("auth-email");
+
+    const authPassword =
+      document.getElementById("auth-password");
+
+    const loginBtn =
+      document.getElementById("login-btn");
+    const signupBtn =
+  document.getElementById("signup-btn");
+
+const profileSetup =
+  document.getElementById("profile-setup");
+
+const profileName =
+  document.getElementById("profile-name");
+
+const profileUsername =
+  document.getElementById("profile-username");
+
+const saveProfileBtn =
+  document.getElementById("save-profile-btn");
+
+const profileMessage =
+  document.getElementById("profile-message");
+  
+    
+
+    const authMessage =
+      document.getElementById("auth-message");
+
+    const app =
+      document.getElementById("app");
+
+    const contacts =
+      document.getElementById("contacts");
+
+    const messages =
+      document.getElementById("messages");
+
+    const messageInput =
+      document.getElementById("messageInput");
+
+    const sendButton =
+      document.getElementById("sendButton");
+
+    const messageInputArea =
+      document.getElementById(
+        "message-input-area"
+      );
+
+    const chatHeader =
+      document.getElementById(
+        "chat-header"
+      );
+
+    const searchInput =
+  document.getElementById(
+    "search-input"
+  );
+
+    const settingsButton =
+      document.getElementById(
+        "settingsButton"
+      );
+
+    const settings =
+      document.getElementById(
+        "settings"
+      );
+
+    const darkButton =
+  document.getElementById(
+    "darkButton"
+  );
+
+    const clearButton =
+      document.getElementById(
+        "clearButton"
+      );
+
+    const closeSettings =
+      document.getElementById(
+        "closeSettings"
+      );
+
+    const editProfileButton =
+      document.getElementById(
+        "editProfileButton"
+      );
+
+    const editProfile =
+      document.getElementById(
+        "edit-profile"
+      );
+
+    const editProfileName =
+      document.getElementById(
+        "edit-profile-name"
+      );
+
+    const editProfileUsername =
+      document.getElementById(
+        "edit-profile-username"
+      );
+
+    const saveEditProfile =
+      document.getElementById(
+        "save-edit-profile"
+      );
+
+    const cancelEditProfile =
+      document.getElementById(
+        "cancel-edit-profile"
+      );
+
+    const editProfileMessage =
+      document.getElementById(
+        "edit-profile-message"
+      );
+
+    const logoutButton =
+      document.getElementById(
+        "logoutButton"
+      );
+      saveProfileBtn.addEventListener(
+  "click",
+  async function() {
+
+    const name =
+      profileName.value.trim();
+
+    const username =
+      profileUsername.value.trim();
+
+    if (!name || !username) {
+    profileMessage.textContent =
+        "Enter your name and username.";
+
+      return;
+    }
+
+    if (!username.startsWith("@")) {
+      profileMessage.textContent =
+        "Username must start with @.";
+
+      return;
+    }
+
+    profileMessage.textContent =
+      "Saving...";
+
+    const result =
+      await db
+        .from("profiles")
+        .update({
+          name: name,
+          username: username
+        })
+        .eq("id", currentUser.id);
+
+    if (result.error) {
+
+      console.log(result.error);
+
+      profileMessage.textContent =
+        result.error.message;
+
+      return;
+    }
+
+    profileMessage.textContent =
+      "Profile saved!";
+
+    profileSetup.style.display =
+      "none";
+
+    await showApp();
+
+  }
+);
+
+
+    /* =========================
+       VARIABLES
+    ========================= */
+
+    let currentUser = null;
+
+    let selectedContact = null;
+
+    let profiles = [];
+
+    let realtimeChannel = null;
+
+
+    /* =========================
+       ESCAPE HTML
+    ========================= */
+
+    function escapeHTML(text) {
+
+      const div =
+        document.createElement("div");
+
+      div.textContent = text;
+
+      return div.innerHTML;
+
+    }
+
+
+    /* =========================
+       LOGIN
+    ========================= */
+
+    loginBtn.addEventListener(
+      "click",
+      async function() {
+
+        const email =
+          authEmail.value.trim();
+
+        const password =
+          authPassword.value;
+
+        if (!email || !password) {
+
+          authMessage.textContent =
+            "Enter your email and password.";
+
+          return;
+
+        }
+
+        authMessage.textContent =
+          "Logging in...";
+
+        loginBtn.disabled = true;
+
+        const result =
+          await db.auth.signInWithPassword({
+            email: email,
+            password: password
+          });
+
+        if (result.error) {
+
+          console.log(result.error);
+
+          authMessage.textContent =
+            result.error.message;
+
+          loginBtn.disabled = false;
+
+          return;
+
+        }
+
+        currentUser =
+          result.data.user;
+
+        authMessage.textContent =
+          "Login successful!";
+
+        await showApp();
+
+        loginBtn.disabled = false;
+
+      }
+    );
+
+
+    /* =========================
+       CREATE ACCOUNT
+    ========================= */
+
+    
+
+        authMessage.textContent =
+          "Creating account...";
+
+        signupBtn.addEventListener(
+      "click",
+      async function() {
+
+        const email =
+          authEmail.value.trim();
+
+        const password =
+          authPassword.value;
+
+        if (!email || !password) {
+
+          authMessage.textContent =
+            "Enter an email and password.";
+
+          return;
+
+        }
+
+        if (password.length < 6) {
+
+          authMessage.textContent =
+            "Password must be at least 6 characters.";
+
+          return;
+
+        }
+
+signupBtn.disabled = true;
+
+        const result =
+          await db.auth.signUp({
+            email: email,
+            password: password
+          });
+
+        if (result.error) {
+
+          console.log(result.error);
+
+          authMessage.textContent =
+            result.error.message;
+
+          signupBtn.disabled = false;
+
+          return;
+
+        }
+
+        if (result.data.session) {
+
+  currentUser =
+    result.data.user;
+
+  await createProfileIfNeeded();
+
+  authMessage.textContent =
+    "Account created!";
+
+  authScreen.style.display = "none";
+  profileSetup.style.display = "block";
+
+                        
+        } else {
+
+          authMessage.textContent =
+            "Account created. Check your email to confirm, then login.";
+
+        }
+
+        signupBtn.disabled = false;
+
+      }
+    );
+
+
+    /* =========================
+       CREATE PROFILE
+    ========================= */
+
+    async function createProfileIfNeeded() {
+
+      if (!currentUser) {
+        return;
+      }
+
+      const result =
+        await db
+          .from("profiles")
+          .select("id")
+          .eq(
+            "id",
+            currentUser.id
+          )
+          .maybeSingle();
+
+      if (result.error) {
+
+        console.log(
+          "Profile check error:",
+          result.error
+        );
+
+        return;
+
+      }
+
+      if (result.data) {
+        return;
+      }
+
+      const email =
+        currentUser.email || "";
+
+      
+
+      const insertResult =
+  await db
+    .from("profiles")
+    .insert({
+      id: currentUser.id,
+      username: "",
+      email: email,
+      last_seen: new Date().toISOString()
+    });
+
+      if (insertResult.error) {
+
+        console.log(
+          "Profile creation error:",
+          insertResult.error
+        );
+
+      }
+
+    }
+
+
+    /* =========================
+       CHECK LOGIN
+    ========================= */
+
+    async function checkLogin() {
+
+  const result =
+    await db.auth.getSession();
+
+  if (result.error) {
+
+    console.log(result.error);
+
+    authScreen.style.display =
+      "flex";
+
+    app.style.display =
+      "none";
+
+    return;
+  }
+
+  if (result.data.session) {
+
+    currentUser =
+      result.data.session.user;
+
+    await createProfileIfNeeded();
+
+    const profileResult =
+      await db
+        .from("profiles")
+        .select("name, username")
+        .eq("id", currentUser.id)
+        .single();
+
+    if (
+      !profileResult.data ||
+      !profileResult.data.name ||
+      !profileResult.data.username
+    ) {
+
+      authScreen.style.display =
+        "none";
+
+      app.style.display =
+        "none";
+
+      profileSetup.style.display =
+        "block";
+
+      return;
+    }
+
+    await showApp();
+
+  } else {
+
+    authScreen.style.display =
+      "flex";
+
+    app.style.display =
+      "none";
+  }
+}
+
+
+
+    /* =========================
+       ONLINE / OFFLINE PRESENCE
+    ========================= */
+
+    const PRESENCE_TIMEOUT = 60000;
+
+    function isUserOnline(profile) {
+      if (!profile || !profile.last_seen) {
+        return false;
+      }
+
+      const lastSeen =
+        new Date(profile.last_seen).getTime();
+
+      return (
+        Date.now() - lastSeen <
+        PRESENCE_TIMEOUT
+      );
+    }
+
+    async function updateMyPresence() {
+      if (!currentUser) {
+        return;
+      }
+
+      const result =
+        await db
+          .from("profiles")
+          .update({
+            last_seen: new Date().toISOString()
+          })
+          .eq("id", currentUser.id);
+
+      if (result.error) {
+        console.log(
+          "Presence update error:",
+          result.error
+        );
+      }
+    }
+
+    let presenceInterval = null;
+    let profileRefreshInterval = null;
+
+    function startPresence() {
+      updateMyPresence();
+
+      if (presenceInterval) {
+        clearInterval(presenceInterval);
+      }
+
+      if (profileRefreshInterval) {
+        clearInterval(profileRefreshInterval);
+      }
+
+      presenceInterval =
+        setInterval(
+          updateMyPresence,
+          20000
+        );
+
+      profileRefreshInterval =
+        setInterval(
+          async function() {
+            await loadProfiles();
+
+            if (selectedContact) {
+              const updatedContact =
+                profiles.find(
+                  function(profile) {
+                    return (
+                      profile.id ===
+                      selectedContact.id
+                    );
+                  }
+                );
+
+              if (updatedContact) {
+                selectedContact =
+                  updatedContact;
+
+                const name =
+                  updatedContact.name ||
+                  updatedContact.username ||
+                  updatedContact.email ||
+                  "User";
+
+                const statusText =
+                  isUserOnline(updatedContact)
+                    ? "● Online"
+                    : "● Offline";
+
+                const title =
+                  chatHeader.querySelector(
+                    ".chat-title"
+                  );
+
+                const status =
+                  chatHeader.querySelector(
+                    ".chat-status"
+                  );
+
+                if (title) {
+                  title.textContent = name;
+                }
+
+                if (status) {
+                  status.textContent =
+                    statusText;
+
+                  status.className =
+                    "chat-status " +
+                    (isUserOnline(updatedContact)
+                      ? "online"
+                      : "offline");
+                }
+              }
+            }
+          },
+          15000
+        );
+    }
+
+    document.addEventListener(
+      "visibilitychange",
+      function() {
+        if (
+          document.visibilityState ===
+          "visible"
+        ) {
+          updateMyPresence();
+        }
+      }
+    );
+
+    window.addEventListener(
+      "focus",
+      function() {
+        updateMyPresence();
+      }
+    );
+
+
+    /* =========================
+       SHOW APP
+    ========================= */
+
+    async function showApp() {
+
+      authScreen.style.display =
+        "none";
+
+      app.style.display =
+        "block";
+
+      await createProfileIfNeeded();
+
+      await loadProfiles();
+
+      subscribeToMessages();
+
+      startPresence();
+
+    }
+
+
+    /* =========================
+       LOAD PROFILES
+    ========================= */
+
+    async function loadProfiles() {
+
+      const result =
+        await db
+          .from("profiles")
+          .select("*")
+          .order("username");
+
+      if (result.error) {
+
+        console.log(
+          "Profiles error:",
+          result.error
+        );
+
+        contacts.innerHTML =
+          '<div style="padding:20px;">Unable to load contacts.</div>';
+
+        return;
+
+      }
+
+      profiles =
+        result.data || [];
+
+      renderContacts();
+
+    }
+
+
+    /* =========================
+       RENDER CONTACTS
+    ========================= */
+
+    function renderContacts(
+      filter = ""
+    ) {
+
+      contacts.innerHTML = "";
+
+      const search =
+        filter.toLowerCase();
+
+      const otherProfiles =
+        profiles.filter(
+          function(profile) {
+
+            if (
+              currentUser &&
+              profile.id === currentUser.id
+            ) {
+
+              return false;
+
+            }
+
+            const username =
+              profile.username || "";
+
+            return username
+              .toLowerCase()
+              .includes(search);
+
+          }
+        );
+
+
+      if (otherProfiles.length === 0) {
+
+        contacts.innerHTML =
+          '<div style="padding:20px;color:#777;">No contacts found.</div>';
+
+        return;
+
+      }
+
+
+      otherProfiles.forEach(
+        function(profile) {
+
+          const contact =
+            document.createElement("div");
+
+          contact.className =
+            "contact";
+
+          contact.dataset.id =
+            profile.id;
+
+          const name =
+  profile.name ||
+  profile.username ||
+  profile.email ||
+  "User";
+
+          const firstLetter =
+            name
+              .charAt(0)
+              .toUpperCase();
+
+          contact.innerHTML =
+
+            '<div class="contact-left">' +
+
+              '<div class="avatar">' +
+                escapeHTML(firstLetter) +
+              '</div>' +
+
+              '<div>' +
+
+                '<div class="contact-name">' +
+                  escapeHTML(name) +
+                '</div>' +
+
+                '<div class="' +
+                  (isUserOnline(profile) ? 'online' : 'online offline') +
+                  '">' +
+                  (isUserOnline(profile) ? '● Online' : '● Offline') +
+                '</div>' +
+
+              '</div>' +
+
+            '</div>' +
+
+            '<span class="badge">0</span>';
+
+
+          contact.addEventListener(
+            "click",
+            async function() {
+
+              await selectContact(
+                profile
+              );
+
+            }
+          );
+
+
+          contacts.appendChild(
+            contact
+          );
+
+        }
+      );
+
+
+      updateActiveContact();
+
+    }
+
+
+    /* =========================
+       SELECT CONTACT
+    ========================= */
+
+    async function selectContact(
+      profile
+    ) {
+
+      selectedContact =
+        profile;
+document.querySelector(".chat-area").classList.add("open");
+      updateActiveContact();
+
+      const name =
+        profile.name ||
+        profile.username ||
+        profile.email ||
+        "User";
+
+      const firstLetter =
+        name
+          .charAt(0)
+          .toUpperCase();
+
+      const statusText =
+        isUserOnline(profile)
+          ? "● Online"
+          : "● Offline";
+
+      chatHeader.innerHTML =
+  '<button id="backButton" class="back-button">←</button>' +
+
+        '<div class="avatar">' +
+          escapeHTML(firstLetter) +
+        '</div>' +
+
+        '<div>' +
+
+          '<div class="chat-title">' +
+            escapeHTML(name) +
+          '</div>' +
+
+          '<div class="chat-status ' +
+            (isUserOnline(profile) ? 'online' : 'offline') +
+            '">' +
+            escapeHTML(statusText) +
+          '</div>' +
+
+        '</div>';
+         document.getElementById("backButton").addEventListener("click", function() {
+  document.querySelector(".chat-area").classList.remove("open");
+});
+      messageInputArea.style.display =
+        "flex";
+
+      messageInput.focus();
+
+      await loadConversation();
+
+    }
+
+
+    /* =========================
+       ACTIVE CONTACT
+    ========================= */
+
+    function updateActiveContact() {
+
+      const allContacts =
+        document.querySelectorAll(
+          ".contact"
+        );
+
+      allContacts.forEach(
+        function(contact) {
+
+          if (
+            selectedContact &&
+            contact.dataset.id ===
+            selectedContact.id
+          ) {
+
+            contact.classList.add(
+              "active"
+            );
+
+          } else {
+
+            contact.classList.remove(
+              "active"
+            );
+
+          }
+
+        }
+      );
+
+    }
+          /* =========================
+       LOAD CONVERSATION
+    ========================= */
+
+    async function loadConversation() {
+
+      if (
+        !currentUser ||
+        !selectedContact
+      ) {
+        return;
+      }
+
+      messages.innerHTML = "";
+
+      const result =
+        await db
+          .from("Messages")
+          .select("*")
+          .or(
+            "and(sender_id.eq." +
+            currentUser.id +
+            ",receiver_id.eq." +
+            selectedContact.id +
+            "),and(sender_id.eq." +
+            selectedContact.id +
+            ",receiver_id.eq." +
+            currentUser.id +
+            ")"
+          )
+          .order(
+            "created_at",
+            {
+              ascending: true
+            }
+          );
+
+      if (result.error) {
+
+        console.log(
+          "Messages error:",
+          result.error
+        );
+
+        messages.innerHTML =
+          '<div class="empty"><p>Unable to load messages.</p></div>';
+
+        return;
+      }
+
+      if (
+        !result.data ||
+        result.data.length === 0
+      ) {
+
+        messages.innerHTML =
+          '<div class="empty"><div><h3>No messages yet.</h3><p>Send the first message.</p></div></div>';
+
+        return;
+      }
+
+      result.data.forEach(
+        function(row) {
+          displayMessage(row);
+        }
+      );
+
+      scrollMessages();
+
+    }
+
+
+    /* =========================
+       DISPLAY MESSAGE
+    ========================= */
+
+    function displayMessage(row) {
+
+      const isSent =
+        currentUser &&
+        row.sender_id ===
+        currentUser.id;
+
+      const message =
+        document.createElement("div");
+
+      message.className =
+        isSent
+          ? "message sent"
+          : "message received";
+
+      message.dataset.id =
+        row.id;
+
+      const time =
+        row.created_at
+          ? new Date(
+              row.created_at
+            ).toLocaleTimeString(
+              [],
+              {
+                hour: "2-digit",
+                minute: "2-digit"
+              }
+            )
+          : "";
+
+      let html =
+        escapeHTML(
+          row.content || ""
+        ) +
+        '<span class="time">' +
+          escapeHTML(time) +
+        '</span>';
+
+      if (isSent) {
+
+        html +=
+          '<button class="delete">' +
+            'Delete' +
+          '</button>';
+
+      }
+
+      message.innerHTML =
+        html;
+
+
+      if (isSent) {
+
+        const deleteButton =
+          message.querySelector(
+            ".delete"
+          );
+
+        deleteButton.addEventListener(
+          "click",
+          function() {
+
+            deleteMessage(
+              row.id
+            );
+
+          }
+        );
+
+      }
+
+      messages.appendChild(
+        message
+      );
+
+    }
+
+
+    /* =========================
+       SEND MESSAGE
+    ========================= */
+
+    async function sendMessage() {
+
+      const messageText =
+        messageInput.value.trim();
+
+      if (!messageText) {
+        return;
+      }
+
+      if (
+        !currentUser ||
+        !selectedContact
+      ) {
+
+        alert(
+          "Please select a contact first."
+        );
+
+        return;
+
+      }
+
+      sendButton.disabled =
+        true;
+
+      const result =
+        await db
+          .from("Messages")
+          .insert({
+            sender_id:
+              currentUser.id,
+
+            receiver_id:
+              selectedContact.id,
+
+            content:
+              messageText
+          })
+          .select()
+          .single();
+
+
+      if (result.error) {
+
+        console.log(
+          "Send message error:",
+          result.error
+        );
+
+        alert(
+          result.error.message
+        );
+
+        sendButton.disabled =
+          false;
+
+        return;
+
+      }
+
+      messageInput.value = "";
+
+      const existing =
+        messages.querySelector(
+          '[data-id="' +
+          result.data.id +
+          '"]'
+        );
+
+      if (!existing) {
+
+        const empty =
+          messages.querySelector(
+            ".empty"
+          );
+
+        if (empty) {
+          empty.remove();
+        }
+
+        displayMessage(
+          result.data
+        );
+
+      }
+
+      scrollMessages();
+
+      sendButton.disabled =
+        false;
+
+    }
+
+
+    /* =========================
+       SEND BUTTON
+    ========================= */
+
+    sendButton.addEventListener(
+      "click",
+      sendMessage
+    );
+
+
+    /* =========================
+       ENTER TO SEND
+    ========================= */
+
+    messageInput.addEventListener(
+      "keydown",
+      function(event) {
+
+        if (
+          event.key === "Enter" &&
+          !event.shiftKey
+        ) {
+
+          event.preventDefault();
+
+          sendMessage();
+
+        }
+
+      }
+    );
+
+
+    /* =========================
+       DELETE MESSAGE
+    ========================= */
+
+    async function deleteMessage(
+      messageId
+    ) {
+
+      const confirmed =
+        confirm(
+          "Delete this message?"
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+      const result =
+        await db
+          .from("Messages")
+          .delete()
+          .eq(
+            "id",
+            messageId
+          );
+
+      if (result.error) {
+
+        console.log(
+          "Delete error:",
+          result.error
+        );
+
+        alert(
+          result.error.message
+        );
+
+        return;
+
+      }
+
+      const element =
+        messages.querySelector(
+          '[data-id="' +
+          messageId +
+          '"]'
+        );
+
+      if (element) {
+        element.remove();
+      }
+
+    }
+
+
+    /* =========================
+       REALTIME
+    ========================= */
+
+    function subscribeToMessages() {
+
+      if (realtimeChannel) {
+
+        db.removeChannel(
+          realtimeChannel
+        );
+
+      }
+
+      realtimeChannel =
+        db
+          .channel(
+            "chat-messages-" +
+            Date.now()
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "INSERT",
+              schema: "public",
+              table: "Messages"
+            },
+            function(payload) {
+
+              const row =
+                payload.new;
+
+              if (
+                !currentUser ||
+                !selectedContact
+              ) {
+                return;
+              }
+
+              const belongsToConversation =
+
+                (
+                  row.sender_id ===
+                  currentUser.id &&
+
+                  row.receiver_id ===
+                  selectedContact.id
+                )
+
+                ||
+
+                (
+                  row.sender_id ===
+                  selectedContact.id &&
+
+                  row.receiver_id ===
+                  currentUser.id
+                );
+
+
+              if (
+                !belongsToConversation
+              ) {
+                return;
+              }
+
+
+              const alreadyDisplayed =
+                messages.querySelector(
+                  '[data-id="' +
+                  row.id +
+                  '"]'
+                );
+
+
+              if (
+                alreadyDisplayed
+              ) {
+                return;
+              }
+
+
+              const empty =
+                messages.querySelector(
+                  ".empty"
+                );
+
+              if (empty) {
+                empty.remove();
+              }
+
+
+              displayMessage(row);
+
+              scrollMessages();
+
+            }
+          )
+          .subscribe(
+            function(status) {
+
+              console.log(
+                "Realtime status:",
+                status
+              );
+
+            }
+          );
+
+    }
+
+
+    /* =========================
+       SCROLL
+    ========================= */
+
+    function scrollMessages() {
+
+      messages.scrollTop =
+        messages.scrollHeight;
+
+    }
+
+
+    /* =========================
+       SEARCH
+    ========================= */
+
+    searchInput.addEventListener(
+      "input",
+      function() {
+
+        renderContacts(
+          searchInput.value
+        );
+
+      }
+    );
+
+
+    /* =========================
+       SETTINGS
+    ========================= */
+
+    settingsButton.addEventListener(
+      "click",
+      function() {
+
+        settings.style.display =
+          settings.style.display ===
+          "block"
+            ? "none"
+            : "block";
+
+      }
+    );
+
+
+    closeSettings.addEventListener(
+      "click",
+      function() {
+
+        settings.style.display =
+          "none";
+
+      }
+    );
+
+
+    /* =========================
+       EDIT PROFILE
+    ========================= */
+
+    editProfileButton.addEventListener(
+      "click",
+      async function() {
+
+        const result =
+          await db
+            .from("profiles")
+            .select("name, username")
+            .eq("id", currentUser.id)
+            .single();
+
+        if (result.error) {
+          editProfileMessage.textContent =
+            result.error.message;
+          return;
+        }
+
+        editProfileName.value =
+          result.data.name || "";
+
+        editProfileUsername.value =
+          result.data.username || "";
+
+        editProfile.style.display =
+          "block";
+
+        settings.style.display =
+          "none";
+
+      }
+    );
+
+
+    saveEditProfile.addEventListener(
+      "click",
+      async function() {
+
+        const name =
+          editProfileName.value.trim();
+
+        const username =
+          editProfileUsername.value.trim();
+
+        if (!name || !username) {
+
+          editProfileMessage.textContent =
+            "Enter your name and username.";
+
+          return;
+        }
+
+        if (!username.startsWith("@")) {
+
+          editProfileMessage.textContent =
+            "Username must start with @.";
+
+          return;
+        }
+
+        editProfileMessage.textContent =
+          "Saving...";
+
+        const result =
+          await db
+            .from("profiles")
+            .update({
+              name: name,
+              username: username
+            })
+            .eq("id", currentUser.id);
+
+        if (result.error) {
+
+          console.log(result.error);
+
+          editProfileMessage.textContent =
+            result.error.message;
+
+          return;
+        }
+
+        editProfileMessage.textContent =
+          "Profile saved!";
+
+        editProfile.style.display =
+          "none";
+
+        await loadProfiles();
+
+      }
+    );
+
+
+    cancelEditProfile.addEventListener(
+      "click",
+      function() {
+
+        editProfile.style.display =
+          "none";
+
+        settings.style.display =
+          "block";
+
+      }
+    );
+
+
+    /* =========================
+       DARK MODE
+    ========================= */
+
+    darkButton.addEventListener(
+      "click",
+      function() {
+
+        document.body.classList.toggle(
+          "dark"
+        );
+
+        if (
+          document.body.classList.contains(
+            "dark"
+          )
+        ) {
+
+          localStorage.setItem(
+            "darkMode",
+            "true"
+          );
+
+          darkButton.textContent =
+            "☀️ Light Mode";
+
+        } else {
+
+          localStorage.setItem(
+            "darkMode",
+            "false"
+          );
+
+          darkButton.textContent =
+            "🌙 Dark Mode";
+
+        }
+
+      }
+    );
+
+
+    /* =========================
+       LOAD DARK MODE
+    ========================= */
+
+    if (
+      localStorage.getItem(
+        "darkMode"
+      ) === "true"
+    ) {
+
+      document.body.classList.add(
+        "dark"
+      );
+
+      darkButton.textContent =
+        "☀️ Light Mode";
+
+    }
+
+
+    /* =========================
+       CLEAR MESSAGES
+    ========================= */
+
+    clearButton.addEventListener(
+      "click",
+      async function() {
+
+        if (!currentUser) {
+          return;
+        }
+
+        const confirmed =
+          confirm(
+            "Delete all messages you sent?"
+          );
+
+        if (!confirmed) {
+          return;
+        }
+
+        const result =
+          await db
+            .from("Messages")
+            .delete()
+            .eq(
+              "sender_id",
+              currentUser.id
+            );
+
+        if (result.error) {
+
+          console.log(
+            "Clear error:",
+            result.error
+          );
+
+          alert(
+            result.error.message
+          );
+
+          return;
+
+        }
+
+        await loadConversation();
+
+      }
+    );
+
+
+    /* =========================
+       LOGOUT
+    ========================= */
+
+    logoutButton.addEventListener(
+      "click",
+      async function() {
+
+        const result =
+          await db.auth.signOut();
+
+        if (result.error) {
+
+          console.log(
+            result.error
+          );
+
+          return;
+
+        }
+
+        currentUser = null;
+
+        selectedContact = null;
+
+        profiles = [];
+
+        if (realtimeChannel) {
+
+          await db.removeChannel(
+            realtimeChannel
+          );
+
+          realtimeChannel = null;
+
+        }
+
+        app.style.display =
+          "none";
+
+        authScreen.style.display =
+          "flex";
+
+        authEmail.value = "";
+
+        authPassword.value = "";
+
+        authMessage.textContent =
+          "Logged out.";
+
+        contacts.innerHTML = "";
+
+        messages.innerHTML = "";
+
+        messageInputArea.style.display =
+          "none";
+
+      }
+    );
+
+
+    /* =========================
+       AUTH STATE
+    ========================= */
+
+    db.auth.onAuthStateChange(
+      async function(event, session) {
+
+        console.log(
+          "Auth event:",
+          event
+        );
+
+        if (
+          session &&
+          !currentUser
+        ) {
+
+          currentUser =
+            session.user;
+
+          await checkLogin();
+
+        }
+
+      }
+    );
+
+
+    /* =========================
+       START
+    ========================= */
+
+    checkLogin();
+
+  </script>
+
+</body>
+</html>
